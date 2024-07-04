@@ -28,6 +28,7 @@ function App() {
   const [alert, setAlert] = useState("none")
   const [error, setError] = useState()
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false)
 
   const handleClose = (event: React.SyntheticEvent | Event, reason?: string) => {
     if (reason === 'clickaway') {
@@ -37,27 +38,25 @@ function App() {
   };
 
   const menuItems = messageCategories.map(i=><MenuItem key={i} value={i}>{i}</MenuItem>)
-  const alerts = {
-    "success": <Alert severity="success">Messages sent successfully</Alert>,
-    "failed": <Alert severity="error">{error}</Alert>,
-    "none": ""
-  }
-
 
   const handleChange = (event: SelectChangeEvent) => {
     return setCategory(event.target.value as string)
   }
 
   const sendMessages = async ()=> {
+    setLoading(true)
     API.post('/notifications', {message: message, messageCategory: category}).then(resp=>{
       setAlert("Success")
       setOpen(true);
       console.log("Messages sent succesfully")
-      getMessages().then(data=>setNotifications(data))
+      const data: any[] = resp.data
+      setNotifications([...data, ...notifications].sort((a,b)=>b.id-a.id))
+      setLoading(false)
     }).catch(e=>{
-      setError(e)
-      setAlert("An error occurred: "+e)
+      setError(e.response.data.message)
+      setAlert("An error occurred: " + e.response?.data?.message)
       setOpen(true);
+      setLoading(false)
       console.log("Messages failed")
     })
   }
@@ -102,7 +101,7 @@ function App() {
     >
       <TextField id="outlined-basic" label="Message" value={message} variant="outlined" name='message' onChange={(e)=>setMessage(e.target.value)}/>
     </Box>
-      <Button type='submit' variant="contained" onClick={sendMessages}>
+      <Button type='submit' variant="contained" onClick={sendMessages} disabled={loading}>
         Send
       </Button>
 
@@ -116,7 +115,7 @@ function App() {
         open={open}
         autoHideDuration={6000}
         onClose={handleClose}
-        message="Note archived"
+        message={alert}
       />
     </div>
   );
